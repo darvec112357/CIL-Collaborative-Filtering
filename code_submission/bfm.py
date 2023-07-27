@@ -3,7 +3,9 @@ import pandas as pd
 
 from sklearn.preprocessing import OneHotEncoder
 from surprise import KNNBaseline
-from myfm import MyFMRegressor, MyFMOrderedProbit, VariationalFMRegressor
+from myfm import MyFMRegressor, MyFMOrderedProbit, VariationalFMRegressor,RelationBlock
+from scipy import sparse as sps
+
 
 def run_bfm(train_df, test_df, rank, fm_kind='classifier'):
     """
@@ -140,3 +142,134 @@ def run_bfm_augmented(train_df, antitrain_df, test_df, n_samples_per_cluster, ra
         pred_df[f'Prediction_{seed}'] = expected_rating
     pred_df['Prediction_avg'] = pred_df[[f'Prediction_{seed}' for seed in seed_lst]].mean(axis=1)
     return pred_df
+
+def get_RelationBlocks(train_df, test_df):
+    """
+    Given the training and testing data, this function creates RelationBlocks for the user and movie features.
+    The user and movie features are augmented with additional information such as implicit user and item features.
+    The function returns the train and test RelationBlocks along with the feature group sizes.
+
+    Parameters
+    ----------
+    train_df : pandas DataFrame
+        The training data, must have columns 'row', 'col', and 'Prediction'
+    test_df : pandas DataFrame
+        The testing data, must have columns 'row' and 'col'
+
+    Returns
+    -------
+    train_blocks : list
+        A list of RelationBlocks for the training data
+    test_blocks : list
+        A list of RelationBlocks for the testing data
+    feature_group_sizes : list
+        A list of integers representing the size of each feature group
+    """
+    # Inspired by https://github.com/tohtsky/myFM/blob/main/examples/ml-1m-extended.ipynb
+
+    unique_user_ids = np.unique(train_df.row)
+    unique_movie_ids = np.unique(test_df.col)
+    user_id_to_index = { uid: i for i, uid in enumerate(unique_user_ids)}
+    movie_id_to_index = { mid: i for i, mid in enumerate(unique_movie_ids)}
+
+
+    use_iu = True # use implicit user feature
+    use_ii = True # use implicit item feature
+
+    movie_vs_watched = dict()
+    user_vs_watched = dict()
+    for row in train_df.itertuples():
+        user_id = row.row
+        movie_id = row.col
+        movie_vs_watched.setdefault(movie_id, list()).append(user_id)
+        user_vs_watched.setdefault(user_id, list()).append(movie_id)
+
+    feature_group_sizes = []
+
+    feature_group_sizes.append(len(user_id_to_index))
+
+    if use_iu:
+        feature_group_sizes.append(len(movie_id_to_index))
+
+    feature_group_sizes.append(len(movie_id_to_index)) 
+                            
+    if use_ii:
+        feature_group_sizes.append(
+            len(user_id_to_index) 
+        )
+  
+
+    unique_user_ids = np.unique(train_df.row)
+    unique_movie_ids = np.unique(test_df.col)
+    user_id_to_index = { uid: i for i, uid in enumerate(unique_user_ids)}
+    movie_id_to_index = { mid: i for i, mid in enumerate(unique_movie_ids)}
+
+    use_iu = True # use implicit user feature
+    use_ii = True # use implicit item feature
+
+    movie_vs_watched = dict()
+    user_vs_watched = dict()
+    for row in train_df.itertuples():
+        user_id = row.row
+        movie_id = row.col
+        movie_vs_watched.setdefault(movie_id, list()).append(user_id)
+        user_vs_watched.setdefault(user_id, list()).append(movie_id)
+
+
+
+    # setup grouping
+    feature_group_sizes = []
+
+    feature_group_sizes.append(len(user_id_to_index)) # user ids
+
+    if use_iu:
+        feature_group_sizes.append(len(movie_id_to_index))
+
+    feature_group_sizes.append(len(movie_id_to_index)) # movie ids
+                            
+    if use_ii:
+        feature_group_sizes.append(
+            len(user_id_to_index) # all users who watched the movies
+        )
+    # given user/movie ids, add additional infos and return it as sparse
+    def augment_user_id(user_ids):
+        X = sps.lil_matrix((len(user_ids), len(user_id_to_index) + (len(movie_id_to_index) if use_iu else 0) ))
+        for index, user_id in enumerate(user_ids):
+            if user_id in user_id_to_index:
+                X[index, user_id_to_index[user_id]] = 1
+            if not use_iu:
+                continue
+            watched_movies = user_vs_watched.get(user_id, [])
+            normalizer = 1 / max(len(watched_movies), 1) ** 0.5
+            for mid in watched_movies:
+                if mid in movie_id_to_index:
+                    X[index, movie_id_to_index[mid] + len(user_id_to_index)] = normalizer
+        return X.tocsr()
+
+    def augment_movie_id(movie_ids):
+        X = sps.lil_matrix((len(movie_ids), len(movie_id_to_index)+ (len(user_id_to_index) if use_ii else 0 )))
+        for index, movie_id in enumerate(movie_ids):
+            if movie_id in movie_id_to_index:
+                X[index, movie_id_to_index[movie_id]] = 1
+            if not use_ii:
+                continue
+            watched_users = movie_vs_watched.get(movie_id, [])
+            normalizer = 1 / max(len(watched_users), 1) ** 0.5
+            for uid in watched_users:
+                if uid in user_id_to_index:
+                    X[index, user_id_to_index[uid] + len(movie_id_to_index)] = normalizer
+        return X.tocsr()
+    # Create RelationBlock.
+    train_blocks = []
+    test_blocks = []
+    for source, target in [(train_df, train_blocks), (test_df, test_blocks)]:
+        unique_users, user_map = np.unique(source.row, return_inverse=True)
+        target.append(
+            RelationBlock(user_map, augment_user_id(unique_users))
+        )
+        unique_movies, movie_map = np.unique(source.col, return_inverse=True)
+        target.append(
+            RelationBlock(movie_map, augment_movie_id(unique_movies))
+        )
+
+    return train_blocks, test_blocks, feature_group_sizes
