@@ -1,3 +1,6 @@
+import os
+import sys
+
 import pandas as pd
 import numpy as np
 import optuna
@@ -12,7 +15,6 @@ from sklearn.metrics import mean_squared_error
 from bfm import  get_RelationBlocks
 
 from sklearn.linear_model import ElasticNet
-import sys
 
 import myfm
 
@@ -215,11 +217,24 @@ def optimize_blend(train_models,test_models,train_df,test_df):
     return (usedIndex,bestRsme)    
 
 
-args = sys.argv[1]
-model_dict = {"KNNWithMeans":objectiveKNNWithMeans,"BaselineOnly":objectiveBaselineOnly,"SVD":objectiveSVD,"NMF":objectiveNMF,"bfm_OrderProbit_6":objective_bfm_OrderProbit_6,"bfm_OrderProbit_5":objective_bfm_OrderProbit_5,"bfm_variational":objective_bfm_variational}
+model_name = sys.argv[1]
 
-if args in model_dict.keys():
-    df = pd.read_csv('data_train.csv')
+try:
+    data_folder = sys.argv[2]
+except:
+    data_folder = "../data"
+
+model_dict = {"KNNWithMeans":objectiveKNNWithMeans,
+              "BaselineOnly":objectiveBaselineOnly,
+              "SVD":objectiveSVD,
+              "NMF":objectiveNMF,
+              "bfm_OrderProbit_6":objective_bfm_OrderProbit_6,
+              "bfm_OrderProbit_5":objective_bfm_OrderProbit_5,
+              "bfm_variational":objective_bfm_variational}
+
+if model_name in model_dict.keys():
+    csv_location = os.path.join(data_folder, 'data_train.csv')
+    df = pd.read_csv(csv_location)
 
     # Split the 'ID' column into 'user' and 'item' columns
     df[['user', 'item']] = df['Id'].str.split('_', expand=True)
@@ -235,16 +250,15 @@ if args in model_dict.keys():
 
     # Creating a Dataset object for surprise to use
     data = Dataset.load_from_df(df[['user', 'item', 'rating']], reader)
-    if args in ["bfm_OrderProbit_6","bfm_OrderProbit_5","bfm_variational"]:
-        train_df, test_df = get_train_test(('./data_train.csv'), split_num=0)
+    if model_name in ["bfm_OrderProbit_6","bfm_OrderProbit_5","bfm_variational"]:
+        train_df, test_df = get_train_test(csv_location, split_num=0)
         train_blocks, test_blocks, feature_group_sizes = get_RelationBlocks(train_df, test_df)
 
-    objective = model_dict[args]
+    objective = model_dict[model_name]
     study = optuna.create_study(direction='minimize')
     study.optimize(objective, n_trials=50 )
     print("Best parameters: ", study.best_params)
     print("Best RMSE: ", study.best_value)
-else:
-    print("Model not found")
-    print("Available models: KNNWithMeans,BaselineOnly,SVD,NMF,bfm_OrderProbit_6,bfm_OrderProbit_5,bfm_variational")
 
+else:
+    raise ValueError("Model name not found, please choose from: KNNWithMeans, BaselineOnly, SVD, NMF, bfm_OrderProbit_6, bfm_OrderProbit_5, bfm_variational")
