@@ -1,4 +1,4 @@
-# RainFM: A Stratified Hybrid Model for Enhanced Predictive Accuracy in Recommendation Systems
+# RainFM: A Stratified Hybrid Model for Enhanced Predictive Accuracy in Recommender Systems
 
 **Group**: Recommenders  
 **Members**: Rainer Feichtinger, Rongxing Liu, Justin Lo, Ruben Schenk  
