@@ -17,9 +17,16 @@ To organise the experiments, we have compiled them into a jupyter notebook [here
 To view the exact implementation of our methods, the code is available in the individual python files. Further docstring and explanations of methods are provided within these files. These functions represent the functions that we have imported and used within the jupyter notebook.
 
 ## Hyperparameter Tuning
-In the jupyter notebook provided, the functions are called with the optimal hyperparameters as determined via hypereparameter tuning. To conduct the hyperparameter tuning we have used, you may run the [hyperparameter_optimization.py] file. The script takes in 2 arguments
-1. Desired model to be tuned: chosen from [KNNWithMeans, BaselineOnly, SVD, NMF, bfm_OrderProbit_6, bfm_OrderProbit_5, bfm_variational]
-2. Data folder. Defaults to "../data" if it is not provided
+In the jupyter notebook provided, the functions are called with the optimal hyperparameters as determined via hypereparameter tuning. To conduct the hyperparameter tuning we have used, you may run the [hyperparameter_optimization.py](hyperparameter_optimization.py) file. The script takes in 2 arguments
+1. Desired model to be tuned: chosen from 
+- KNNWithMeans
+- BaselineOnly
+- SVD 
+- NMF
+- bfm_OrderProbit_6
+- bfm_OrderProbit_5
+- bfm_variational
+2. Data folder. Defaults to ```../data``` if it is not provided
 
 As an example, to perform the hyperparameter tuning for the KNN model, you may run 
 ```
