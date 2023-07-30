@@ -24,7 +24,7 @@ class ALS:
     def __init__(self):
         pass
 
-    def _iterSVD(self, A, mask_A, shrinkage, n_iter):
+    def _iterSVD(self, A, mask_A, shrinkage, n_iter, eta=0.2):
         """
         Parameters
         ----------
@@ -36,6 +36,8 @@ class ALS:
             The shrinkage parameter for IterSVD
         n_iter : int
             The number of iterations for IterSVD
+        eta : float
+            The learning rate for IterSVD
 
         Returns
         -------
@@ -49,10 +51,14 @@ class ALS:
         for i in range(n_iter):
             U, s, V = np.linalg.svd(X, full_matrices=False)
             s_ = (s - shrinkage).clip(min=0)
-            X = U.dot(np.diag(s_)).dot(V)
-            X[mask_A] = A[mask_A]
+            shrinkA = (U * s_).dot(V)
+            diff = (A - shrinkA) * mask_A
+            X += diff * eta
+
             print(f"Iteration {i} complete", end='\r')
 
+        U, _, V = np.linalg.svd(X, full_matrices=False)
+        
         print("IterSVD complete")
         return U, V
     
