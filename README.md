@@ -9,12 +9,15 @@ All available packages can be installed via:
 pip install -r requirements.txt
 ```
 
+The data required is the data provided on Kaggle. No external data was utilised. To set the directory of the data, set the variable ```data_folder``` accordingly in the jupyter notebook.
+
 ## Training
 To organise the experiments, we have compiled them into a jupyter notebook [here](experiments.ipynb). The notebook contains the experiments that we have conducted with their respective hyperparameters after they have been tuned via cross-validation. There is a short explanation provided for each method, but further details can be read from our report. 
 
-In the jupyter notebook, the experiments were conducted and evaluated on our train-test split. To produced the output submitted to kaggle, one may change the training methods to utilise the 'train_df_full' Dataframe instead of the 'train_df' Dataframe. The results can then be exported as required.
-
 To view the exact implementation of our methods, the code is available in the individual python files. Further docstring and explanations of methods are provided within these files. These functions represent the functions that we have imported and used within the jupyter notebook.
+
+## Submission
+In the jupyter notebook, the experiments were conducted and evaluated on our train-test split. By default, ```TRAIN_MODE``` is set to True, which produces results for our train-test split. To produce the output submitted to kaggle, one may refer to the RainFM section within the jupyter notebook, and set ```TRAIN_MODE``` to False; the results can then be exported as required.
 
 ## Results
 Below are the results of the experiments conducted on our train-test split. 
