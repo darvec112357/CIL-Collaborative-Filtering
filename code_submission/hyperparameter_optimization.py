@@ -188,7 +188,7 @@ def optimize_blend(train_models,test_models,train_df,test_df):
     Returns:
     tuple: A tuple containing the indexes of the models used in the blend and the best RMSE achieved.
     """
-    indexes = list(range(1,train_blocks.size[1]))
+    indexes = list(range(2,train_blocks.size[1]))
     currentIndex = 1
     bestRsme = 10
     for i in indexes:
@@ -197,9 +197,8 @@ def optimize_blend(train_models,test_models,train_df,test_df):
             bestRsme = rmse
             currentIndex = i
     usedIndex = [currentIndex]
-    indexes = list(range(2,13))
-    base_train = train_models.iloc[:,[0,currentIndex]]
-    base_test = test_models.iloc[:,[0,currentIndex]]
+    base_train = train_models.iloc[:,[currentIndex]]
+    base_test = test_models.iloc[:,[currentIndex]]
 
     while len(indexes) > 0:
     
